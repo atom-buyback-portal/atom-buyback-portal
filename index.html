@@ -3,39 +3,101 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080b18">
   <title>ATOM Buyback Portal</title>
   <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
   <header class="navbar">
-    <div class="brand">
-      <div class="atom-logo">A</div>
+    <a class="brand" href="#">
+      <div class="atom-logo" aria-label="ATOM logo">
+        <svg viewBox="0 0 100 100" role="img">
+          <circle cx="50" cy="50" r="7"></circle>
+          <ellipse cx="50" cy="50" rx="42" ry="18"></ellipse>
+          <ellipse cx="50" cy="50" rx="42" ry="18" transform="rotate(60 50 50)"></ellipse>
+          <ellipse cx="50" cy="50" rx="42" ry="18" transform="rotate(120 50 50)"></ellipse>
+        </svg>
+      </div>
+
       <div>
         <strong>ATOM Buyback</strong>
-        <span>WEB3 ALLOCATION INTERFACE</span>
+        <span>WEB3 ALLOCATION PORTAL</span>
       </div>
-    </div>
+    </a>
 
-    <button id="connectWallet" class="wallet-btn">
-      Connect Wallet
-    </button>
+    <div class="nav-actions">
+      <button id="themeToggle" class="icon-btn" aria-label="Toggle theme">
+        ☾
+      </button>
+
+      <button id="connectWallet" class="wallet-btn">
+        Connect Wallet
+      </button>
+    </div>
   </header>
 
   <main>
+
+    <section class="market-bar">
+      <div class="market-card">
+        <span>ATOM</span>
+        <strong id="atomPrice">$—</strong>
+        <small id="atomChange">—</small>
+      </div>
+
+      <div class="market-card">
+        <span>BNB</span>
+        <strong id="bnbPrice">$—</strong>
+        <small id="bnbChange">—</small>
+      </div>
+
+      <div class="market-card">
+        <span>NETWORK</span>
+        <strong>BNB Smart Chain</strong>
+        <small>Chain ID 56</small>
+      </div>
+
+      <div class="market-card">
+        <span>PORTAL BONUS</span>
+        <strong>11%</strong>
+        <small>Allocation bonus</small>
+      </div>
+    </section>
+
     <section class="hero">
+
       <div class="hero-content">
-        <div class="eyebrow">◆ BNB SMART CHAIN • BEP-20</div>
 
-        <h1>ATOM<br><span>Buyback</span></h1>
+        <div class="eyebrow">
+          ◆ BNB SMART CHAIN • BEP-20
+        </div>
 
-        <p>
-          Calculate your estimated ATOM allocation using the current
-          BNB and ATOM market prices.
+        <h1>
+          ATOM
+          <span>Buyback</span>
+        </h1>
+
+        <p class="hero-description">
+          Calculate an estimated ATOM allocation using current BNB
+          and ATOM market prices, with an 11% portal bonus.
         </p>
 
         <div class="calculator">
-          <label>BNB Amount</label>
+
+          <div class="calculator-heading">
+            <div>
+              <span class="eyebrow">ALLOCATION CALCULATOR</span>
+              <h2>Estimate your allocation</h2>
+            </div>
+
+            <div class="price-mini">
+              <span>ATOM / BNB</span>
+              <strong id="atomBnbRate">—</strong>
+            </div>
+          </div>
+
+          <label for="bnbAmount">BNB Amount</label>
 
           <div class="input-wrap">
             <input
@@ -50,10 +112,11 @@
           </div>
 
           <button id="calculateBtn">
-            Calculate Allocation →
+            Calculate Allocation <span>→</span>
           </button>
 
           <div id="result" class="result hidden">
+
             <div>
               <span>Estimated ATOM</span>
               <strong id="atomResult">0 ATOM</strong>
@@ -61,25 +124,46 @@
 
             <div>
               <span>11% Bonus</span>
-              <strong id="bonusResult">0 ATOM</strong>
+              <strong id="bonusResult">+0 ATOM</strong>
             </div>
 
             <div class="total">
               <span>Total Allocation</span>
               <strong id="totalResult">0 ATOM</strong>
             </div>
+
           </div>
 
           <p id="message" class="message"></p>
+
+          <div class="price-updated">
+            Prices update automatically.
+          </div>
+
         </div>
       </div>
 
-      <div class="atom-orb">
-        <div class="orb-inner">A</div>
+      <div class="atom-visual">
+
+        <div class="orbit orbit-one"></div>
+        <div class="orbit orbit-two"></div>
+        <div class="orbit orbit-three"></div>
+
+        <div class="atom-core">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="7"></circle>
+            <ellipse cx="50" cy="50" rx="42" ry="18"></ellipse>
+            <ellipse cx="50" cy="50" rx="42" ry="18" transform="rotate(60 50 50)"></ellipse>
+            <ellipse cx="50" cy="50" rx="42" ry="18" transform="rotate(120 50 50)"></ellipse>
+          </svg>
+        </div>
+
       </div>
+
     </section>
 
     <section class="stats">
+
       <div>
         <span>Minimum Participation</span>
         <strong>5 BNB</strong>
@@ -99,42 +183,112 @@
         <span>Network</span>
         <strong>BNB Smart Chain</strong>
       </div>
+
+    </section>
+
+    <section class="information-grid">
+
+      <article class="info-card">
+        <div class="info-number">01</div>
+
+        <div>
+          <span class="eyebrow">HOW TO PARTICIPATE</span>
+          <h2>Simple process</h2>
+
+          <ol>
+            <li>Review the allocation and current market prices.</li>
+            <li>Verify the ATOM BEP-20 contract address.</li>
+            <li>Use a compatible BNB Smart Chain wallet.</li>
+            <li>Confirm every transaction directly on-chain.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="info-card">
+        <div class="info-number">02</div>
+
+        <div>
+          <span class="eyebrow">WHY PARTICIPATE</span>
+          <h2>Built for transparency</h2>
+
+          <p>
+            The portal provides live market information, an allocation
+            calculator and on-chain activity so participants can
+            independently verify blockchain activity.
+          </p>
+
+          <div class="feature-list">
+            <span>✓ Live market prices</span>
+            <span>✓ On-chain activity</span>
+            <span>✓ BEP-20 contract verification</span>
+            <span>✓ Transparent allocation calculation</span>
+          </div>
+        </div>
+      </article>
+
     </section>
 
     <section class="history-section">
+
       <div class="section-heading">
+
         <div>
           <span class="eyebrow">ON-CHAIN ACTIVITY</span>
           <h2>Recent Transactions</h2>
+          <p>Recent ATOM token transfers detected on BNB Smart Chain.</p>
         </div>
 
         <span class="live">
           <i></i> LIVE
         </span>
+
       </div>
 
       <div id="history" class="history">
-        <div class="empty-history">
-          No transactions detected yet.
+        <div class="loading-history">
+          Loading on-chain activity...
         </div>
       </div>
+
     </section>
 
     <section class="contract-section">
-      <span class="eyebrow">ATOM CONTRACT</span>
+
+      <div class="contract-heading">
+        <div>
+          <span class="eyebrow">VERIFIED CONTRACT REFERENCE</span>
+          <h2>ATOM Contract</h2>
+        </div>
+
+        <a
+          class="explorer-link"
+          href="https://bscscan.com/token/0xA6Fa11F45da5166B252756bED01E3C2bb26A2708"
+          target="_blank"
+          rel="noopener"
+        >
+          View on BscScan ↗
+        </a>
+      </div>
 
       <div class="contract-box">
+
         <span id="contractAddress">
           0xA6Fa11F45da5166B252756bED01E3C2bb26A2708
         </span>
 
-        <button id="copyContract">Copy</button>
+        <button id="copyContract">
+          Copy
+        </button>
+
       </div>
 
       <p>
         BEP-20 token contract on BNB Smart Chain.
+        Always verify the address before interacting with a token.
       </p>
+
     </section>
+
   </main>
 
   <footer>
@@ -145,3 +299,5 @@
   <script src="./app.js"></script>
 </body>
 </html>
+
+

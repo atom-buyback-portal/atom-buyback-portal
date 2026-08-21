@@ -2,13 +2,13 @@ const MIN_BNB = 5;
 const MAX_BNB = 500;
 const BONUS = 0.11;
 
-const CONTRACT_ADDRESS =
+const CONTRACT =
   "0xA6Fa11F45da5166B252756bED01E3C2bb26A2708";
 
 const BSC_RPC =
   "https://bsc-rpc.publicnode.com";
 
-const COINGECKO_URL =
+const COINGECKO =
   "https://api.coingecko.com/api/v3/simple/price" +
   "?ids=cosmos,binancecoin" +
   "&vs_currencies=usd" +
@@ -19,237 +19,321 @@ const TRANSFER_TOPIC =
 
 let atomPrice = 0;
 let bnbPrice = 0;
-let tokenDecimals = 18;
-let lastBlock = null;
+let decimals = 18;
 
-const $ = (id) => document.getElementById(id);
-
-const bnbAmount = $("bnbAmount");
-const calculateBtn = $("calculateBtn");
-const result = $("result");
-const message = $("message");
-
-const atomResult = $("atomResult");
-const bonusResult = $("bonusResult");
-const totalResult = $("totalResult");
-
-const atomPriceEl = $("atomPrice");
-const bnbPriceEl = $("bnbPrice");
-const atomChangeEl = $("atomChange");
-const bnbChangeEl = $("bnbChange");
-const atomBnbRateEl = $("atomBnbRate");
+const $ = id =>
+  document.getElementById(id);
 
 
-// ------------------------------------
-// THEME
-// ------------------------------------
+/* =========================
+   THEME
+========================= */
 
-const savedTheme = localStorage.getItem("atom-theme");
+const savedTheme =
+  localStorage.getItem("atom-theme");
 
 if (savedTheme === "light") {
   document.body.classList.add("light");
   $("themeToggle").textContent = "☀";
 }
 
-$("themeToggle").addEventListener("click", () => {
-  document.body.classList.toggle("light");
+$("themeToggle").addEventListener(
+  "click",
+  () => {
 
-  const isLight =
-    document.body.classList.contains("light");
+    document.body.classList.toggle("light");
 
-  localStorage.setItem(
-    "atom-theme",
-    isLight ? "light" : "dark"
-  );
+    const light =
+      document.body.classList.contains("light");
 
-  $("themeToggle").textContent =
-    isLight ? "☀" : "☾";
-});
+    localStorage.setItem(
+      "atom-theme",
+      light ? "light" : "dark"
+    );
+
+    $("themeToggle").textContent =
+      light ? "☀" : "☾";
+  }
+);
 
 
-// ------------------------------------
-// LIVE MARKET PRICES
-// ------------------------------------
+/* =========================
+   MARKET PRICES
+========================= */
 
 async function loadPrices() {
+
   try {
-    const response = await fetch(COINGECKO_URL, {
-      cache: "no-store"
-    });
+
+    const response =
+      await fetch(
+        COINGECKO,
+        { cache: "no-store" }
+      );
 
     if (!response.ok) {
       throw new Error("Price request failed");
     }
 
-    const data = await response.json();
+    const data =
+      await response.json();
 
-    atomPrice = Number(data.cosmos?.usd || 0);
-    bnbPrice = Number(data.binancecoin?.usd || 0);
+    atomPrice =
+      Number(
+        data.cosmos?.usd || 0
+      );
+
+    bnbPrice =
+      Number(
+        data.binancecoin?.usd || 0
+      );
 
     const atomChange =
-      Number(data.cosmos?.usd_24h_change || 0);
+      Number(
+        data.cosmos?.usd_24h_change || 0
+      );
 
     const bnbChange =
-      Number(data.binancecoin?.usd_24h_change || 0);
+      Number(
+        data.binancecoin?.usd_24h_change || 0
+      );
 
-    atomPriceEl.textContent =
-      formatUsd(atomPrice);
+    $("atomPrice").textContent =
+      usd(atomPrice);
 
-    bnbPriceEl.textContent =
-      formatUsd(bnbPrice);
+    $("bnbPrice").textContent =
+      usd(bnbPrice);
 
-    atomChangeEl.textContent =
-      `${atomChange >= 0 ? "+" : ""}${atomChange.toFixed(2)}% 24h`;
+    setChange(
+      $("atomChange"),
+      atomChange
+    );
 
-    bnbChangeEl.textContent =
-      `${bnbChange >= 0 ? "+" : ""}${bnbChange.toFixed(2)}% 24h`;
+    setChange(
+      $("bnbChange"),
+      bnbChange
+    );
 
-    atomChangeEl.className =
-      atomChange >= 0 ? "positive" : "negative";
+    if (atomPrice && bnbPrice) {
 
-    bnbChangeEl.className =
-      bnbChange >= 0 ? "positive" : "negative";
+      const rate =
+        bnbPrice / atomPrice;
 
-    if (atomPrice > 0 && bnbPrice > 0) {
-      const rate = bnbPrice / atomPrice;
+      const formatted =
+        rate.toLocaleString(
+          "en-US",
+          {
+            maximumFractionDigits: 4
+          }
+        );
 
-      atomBnbRateEl.textContent =
-        `${rate.toLocaleString(undefined, {
-          maximumFractionDigits: 4
-        })} ATOM / BNB`;
+      $("atomBnbRate").textContent =
+        `${formatted} ATOM`;
+
+      $("calculatorRate").textContent =
+        `${formatted} ATOM`;
     }
 
   } catch (error) {
-    console.error("Price error:", error);
 
-    atomPriceEl.textContent = "Unavailable";
-    bnbPriceEl.textContent = "Unavailable";
-    atomBnbRateEl.textContent = "Unavailable";
+    console.error(
+      "Price loading error:",
+      error
+    );
+
+    $("atomPrice").textContent =
+      "Unavailable";
+
+    $("bnbPrice").textContent =
+      "Unavailable";
+
+    $("atomBnbRate").textContent =
+      "Unavailable";
+
+    $("calculatorRate").textContent =
+      "Unavailable";
   }
 }
 
-function formatUsd(value) {
-  if (!value) return "$—";
 
-  return value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: value < 1 ? 4 : 2
-  });
+function setChange(element, value) {
+
+  if (!Number.isFinite(value)) {
+    element.textContent = "—";
+    return;
+  }
+
+  element.textContent =
+    `${value >= 0 ? "+" : ""}${value.toFixed(2)}% 24h`;
+
+  element.classList.toggle(
+    "positive",
+    value >= 0
+  );
+
+  element.classList.toggle(
+    "negative",
+    value < 0
+  );
 }
 
 
-// ------------------------------------
-// CALCULATOR
-// ------------------------------------
+function usd(value) {
 
-calculateBtn.addEventListener("click", () => {
-  const amount = Number(bnbAmount.value);
-
-  message.textContent = "";
-
-  if (!amount || amount <= 0) {
-    message.textContent =
-      "Enter a valid BNB amount.";
-
-    result.classList.add("hidden");
-    return;
+  if (!value) {
+    return "$—";
   }
 
-  if (amount < MIN_BNB) {
-    message.textContent =
-      `Minimum participation is ${MIN_BNB} BNB.`;
+  return value.toLocaleString(
+    "en-US",
+    {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits:
+        value < 1 ? 4 : 2
+    }
+  );
+}
 
-    result.classList.add("hidden");
-    return;
+
+/* =========================
+   CALCULATOR
+========================= */
+
+$("calculateBtn").addEventListener(
+  "click",
+  () => {
+
+    const amount =
+      Number(
+        $("bnbAmount").value
+      );
+
+    const result =
+      $("result");
+
+    const message =
+      $("message");
+
+    message.textContent = "";
+
+    if (!amount) {
+
+      message.textContent =
+        "Enter a BNB amount.";
+
+      result.classList.add("hidden");
+
+      return;
+    }
+
+    if (amount < MIN_BNB) {
+
+      message.textContent =
+        `Minimum participation is ${MIN_BNB} BNB.`;
+
+      result.classList.add("hidden");
+
+      return;
+    }
+
+    if (amount > MAX_BNB) {
+
+      message.textContent =
+        `Maximum participation is ${MAX_BNB} BNB.`;
+
+      result.classList.add("hidden");
+
+      return;
+    }
+
+    if (!bnbPrice || !atomPrice) {
+
+      message.textContent =
+        "Current market prices are unavailable. Please try again shortly.";
+
+      result.classList.add("hidden");
+
+      return;
+    }
+
+    const estimated =
+      (amount * bnbPrice) /
+      atomPrice;
+
+    const bonus =
+      estimated * BONUS;
+
+    const total =
+      estimated + bonus;
+
+    $("atomResult").textContent =
+      `${formatNumber(estimated)} ATOM`;
+
+    $("bonusResult").textContent =
+      `+${formatNumber(bonus)} ATOM`;
+
+    $("totalResult").textContent =
+      `${formatNumber(total)} ATOM`;
+
+    result.classList.remove("hidden");
   }
-
-  if (amount > MAX_BNB) {
-    message.textContent =
-      `Maximum participation is ${MAX_BNB} BNB.`;
-
-    result.classList.add("hidden");
-    return;
-  }
-
-  if (!bnbPrice || !atomPrice) {
-    message.textContent =
-      "Current market prices are unavailable. Please try again shortly.";
-
-    result.classList.add("hidden");
-    return;
-  }
-
-  /*
-   * Estimated allocation:
-   *
-   * BNB value in USD / ATOM price in USD
-   *
-   * Then apply the portal's 11% bonus.
-   */
-
-  const estimatedAtom =
-    (amount * bnbPrice) / atomPrice;
-
-  const bonusAtom =
-    estimatedAtom * BONUS;
-
-  const totalAtom =
-    estimatedAtom + bonusAtom;
-
-  atomResult.textContent =
-    `${formatNumber(estimatedAtom)} ATOM`;
-
-  bonusResult.textContent =
-    `+${formatNumber(bonusAtom)} ATOM`;
-
-  totalResult.textContent =
-    `${formatNumber(totalAtom)} ATOM`;
-
-  result.classList.remove("hidden");
-});
+);
 
 
-// ------------------------------------
-// COPY CONTRACT
-// ------------------------------------
+/* =========================
+   COPY CONTRACT
+========================= */
 
 $("copyContract").addEventListener(
   "click",
   async () => {
 
     try {
+
       await navigator.clipboard.writeText(
-        CONTRACT_ADDRESS
+        CONTRACT
       );
 
-      const button = $("copyContract");
+      const button =
+        $("copyContract");
 
-      button.textContent = "Copied ✓";
+      button.textContent =
+        "Copied ✓";
 
-      setTimeout(() => {
-        button.textContent = "Copy";
-      }, 1600);
+      setTimeout(
+        () => {
+          button.textContent =
+            "Copy";
+        },
+        1600
+      );
 
     } catch (error) {
-      console.error(error);
+
+      console.error(
+        "Copy error:",
+        error
+      );
     }
   }
 );
 
 
-// ------------------------------------
-// WALLET CONNECTION
-// ------------------------------------
+/* =========================
+   WALLET
+========================= */
 
 $("connectWallet").addEventListener(
   "click",
   async () => {
 
     if (!window.ethereum) {
+
       alert(
         "Please install MetaMask or another compatible Web3 wallet."
       );
+
       return;
     }
 
@@ -257,98 +341,122 @@ $("connectWallet").addEventListener(
 
       const accounts =
         await window.ethereum.request({
-          method: "eth_requestAccounts"
+          method:
+            "eth_requestAccounts"
         });
 
-      if (!accounts.length) return;
+      if (!accounts.length) {
+        return;
+      }
 
-      const address = accounts[0];
+      const address =
+        accounts[0];
 
       $("connectWallet").textContent =
-        `${address.slice(0, 6)}...${address.slice(-4)}`;
+        `${address.slice(0,6)}...${address.slice(-4)}`;
 
     } catch (error) {
-      console.error("Wallet connection:", error);
+
+      console.error(
+        "Wallet error:",
+        error
+      );
     }
   }
 );
 
 
-// ------------------------------------
-// BSC RPC
-// ------------------------------------
+/* =========================
+   RPC
+========================= */
 
-async function rpc(method, params = []) {
+async function rpc(
+  method,
+  params = []
+) {
 
-  const response = await fetch(
-    BSC_RPC,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: Date.now(),
-        method,
-        params
-      })
-    }
-  );
+  const response =
+    await fetch(
+      BSC_RPC,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: Date.now(),
+          method,
+          params
+        })
+      }
+    );
 
   if (!response.ok) {
     throw new Error(
-      `RPC HTTP error ${response.status}`
+      `RPC error ${response.status}`
     );
   }
 
-  const data = await response.json();
+  const data =
+    await response.json();
 
   if (data.error) {
-    throw new Error(data.error.message);
+    throw new Error(
+      data.error.message
+    );
   }
 
   return data.result;
 }
 
 
-// ------------------------------------
-// TOKEN DECIMALS
-// ------------------------------------
+/* =========================
+   TOKEN DECIMALS
+========================= */
 
-async function loadTokenDecimals() {
+async function loadDecimals() {
 
   try {
 
     const result =
-      await rpc("eth_call", [
-        {
-          to: CONTRACT_ADDRESS,
-          data: "0x313ce567"
-        },
-        "latest"
-      ]);
+      await rpc(
+        "eth_call",
+        [
+          {
+            to: CONTRACT,
+            data: "0x313ce567"
+          },
+          "latest"
+        ]
+      );
 
     if (result) {
-      tokenDecimals =
-        parseInt(result, 16);
+      decimals =
+        parseInt(
+          result,
+          16
+        );
     }
 
   } catch (error) {
 
     console.warn(
-      "Could not read token decimals. Using 18.",
+      "Token decimals unavailable:",
       error
     );
 
-    tokenDecimals = 18;
+    decimals = 18;
   }
 }
 
 
-// ------------------------------------
-// REAL ON-CHAIN TRANSFERS
-// ------------------------------------
+/* =========================
+   REAL ON-CHAIN ACTIVITY
+========================= */
 
 async function loadTransactions() {
 
@@ -358,33 +466,55 @@ async function loadTransactions() {
   try {
 
     const latestHex =
-      await rpc("eth_blockNumber");
+      await rpc(
+        "eth_blockNumber"
+      );
 
-    const latestBlock =
-      parseInt(latestHex, 16);
+    const latest =
+      parseInt(
+        latestHex,
+        16
+      );
 
     /*
-     * Search the recent block range.
-     * Keep the range relatively small so the public RPC
-     * is not overloaded.
-     */
+      Read recent Transfer events
+      emitted by the supplied token
+      contract.
+    */
 
-    const fromBlock =
-      Math.max(0, latestBlock - 3000);
+    const from =
+      Math.max(
+        0,
+        latest - 2500
+      );
 
     const logs =
-      await rpc("eth_getLogs", [
-        {
-          address: CONTRACT_ADDRESS,
-          fromBlock: `0x${fromBlock.toString(16)}`,
-          toBlock: `0x${latestBlock.toString(16)}`,
-          topics: [TRANSFER_TOPIC]
-        }
-      ]);
+      await rpc(
+        "eth_getLogs",
+        [
+          {
+            address: CONTRACT,
+
+            fromBlock:
+              `0x${from.toString(16)}`,
+
+            toBlock:
+              `0x${latest.toString(16)}`,
+
+            topics: [
+              TRANSFER_TOPIC
+            ]
+          }
+        ]
+      );
 
     const transfers =
       logs
-        .filter((log) => log.topics?.length >= 3)
+        .filter(
+          log =>
+            log.topics &&
+            log.topics.length >= 3
+        )
         .slice(-8)
         .reverse();
 
@@ -393,15 +523,18 @@ async function loadTransactions() {
       history.innerHTML = `
         <div class="empty-history">
           <div class="empty-icon">◌</div>
-          <strong>No recent transfers detected</strong>
+
+          <strong>
+            No recent transfers detected
+          </strong>
+
           <span>
-            New on-chain ATOM transfers will appear here
-            when detected.
+            Confirmed ATOM transfers will
+            appear here automatically.
           </span>
         </div>
       `;
 
-      lastBlock = latestBlock;
       return;
     }
 
@@ -409,59 +542,96 @@ async function loadTransactions() {
 
     for (const log of transfers) {
 
-      const from =
-        "0x" + log.topics[1].slice(-40);
+      const fromAddress =
+        "0x" +
+        log.topics[1].slice(-40);
 
-      const to =
-        "0x" + log.topics[2].slice(-40);
+      const toAddress =
+        "0x" +
+        log.topics[2].slice(-40);
 
-      const rawAmount =
+      const raw =
         BigInt(log.data);
 
+      const divisor =
+        10n ** BigInt(decimals);
+
+      const whole =
+        raw / divisor;
+
+      const fraction =
+        raw % divisor;
+
       const amount =
-        Number(
-          rawAmount /
-          (10n ** BigInt(tokenDecimals))
-        ) +
-        Number(
-          rawAmount %
-          (10n ** BigInt(tokenDecimals))
-        ) /
-        Number(
-          10n ** BigInt(tokenDecimals)
-        );
+        Number(whole) +
+        Number(fraction) /
+        Number(divisor);
 
       const timestamp =
-        await getBlockTimestamp(log.blockNumber);
+        await getTimestamp(
+          log.blockNumber
+        );
 
       rows.push({
-        hash: log.transactionHash,
-        from,
-        to,
+        hash:
+          log.transactionHash,
+
+        from:
+          fromAddress,
+
+        to:
+          toAddress,
+
         amount,
+
         timestamp
       });
     }
 
-    history.innerHTML =
-      rows.map(renderTransaction).join("");
+    /*
+      Render oldest first so the newest
+      item enters naturally at the bottom
+      of the transition.
+    */
 
-    lastBlock = latestBlock;
+    history.innerHTML =
+      rows
+        .reverse()
+        .map(
+          renderTransaction
+        )
+        .join("");
+
+    /*
+      Put the newest item back at the top.
+    */
+
+    history.innerHTML =
+      rows
+        .reverse()
+        .map(
+          renderTransaction
+        )
+        .join("");
 
   } catch (error) {
 
     console.error(
-      "Transaction loading error:",
+      "Transaction error:",
       error
     );
 
     history.innerHTML = `
       <div class="empty-history">
         <div class="empty-icon">!</div>
-        <strong>On-chain activity temporarily unavailable</strong>
+
+        <strong>
+          Activity temporarily unavailable
+        </strong>
+
         <span>
-          The portal could not read the BNB Smart Chain
-          activity feed right now.
+          The blockchain activity feed
+          could not be refreshed.
         </span>
       </div>
     `;
@@ -469,16 +639,25 @@ async function loadTransactions() {
 }
 
 
-// ------------------------------------
-// BLOCK TIMESTAMP
-// ------------------------------------
+/* =========================
+   BLOCK TIMESTAMP
+========================= */
 
-const blockCache = new Map();
+const blockCache =
+  new Map();
 
-async function getBlockTimestamp(blockNumber) {
+async function getTimestamp(
+  blockNumber
+) {
 
-  if (blockCache.has(blockNumber)) {
-    return blockCache.get(blockNumber);
+  if (
+    blockCache.has(
+      blockNumber
+    )
+  ) {
+    return blockCache.get(
+      blockNumber
+    );
   }
 
   try {
@@ -486,11 +665,17 @@ async function getBlockTimestamp(blockNumber) {
     const block =
       await rpc(
         "eth_getBlockByNumber",
-        [blockNumber, false]
+        [
+          blockNumber,
+          false
+        ]
       );
 
     const timestamp =
-      parseInt(block.timestamp, 16) * 1000;
+      parseInt(
+        block.timestamp,
+        16
+      ) * 1000;
 
     blockCache.set(
       blockNumber,
@@ -500,25 +685,26 @@ async function getBlockTimestamp(blockNumber) {
     return timestamp;
 
   } catch {
+
     return Date.now();
   }
 }
 
 
-// ------------------------------------
-// TRANSACTION CARD
-// ------------------------------------
+/* =========================
+   TRANSACTION ROW
+========================= */
 
 function renderTransaction(tx) {
 
   const shortHash =
-    `${tx.hash.slice(0, 8)}...${tx.hash.slice(-6)}`;
+    `${tx.hash.slice(0,8)}...${tx.hash.slice(-6)}`;
 
   const shortFrom =
-    `${tx.from.slice(0, 6)}...${tx.from.slice(-4)}`;
+    `${tx.from.slice(0,6)}...${tx.from.slice(-4)}`;
 
   const shortTo =
-    `${tx.to.slice(0, 6)}...${tx.to.slice(-4)}`;
+    `${tx.to.slice(0,6)}...${tx.to.slice(-4)}`;
 
   return `
     <a
@@ -547,7 +733,8 @@ function renderTransaction(tx) {
       <div class="transaction-meta">
 
         <span class="confirmed">
-          <i></i> Confirmed
+          <i></i>
+          Confirmed
         </span>
 
         <small>
@@ -565,9 +752,9 @@ function renderTransaction(tx) {
 }
 
 
-// ------------------------------------
-// HELPERS
-// ------------------------------------
+/* =========================
+   HELPERS
+========================= */
 
 function formatNumber(value) {
 
@@ -579,11 +766,15 @@ function formatNumber(value) {
   );
 }
 
+
 function relativeTime(timestamp) {
 
   const seconds =
-    Math.floor(
-      (Date.now() - timestamp) / 1000
+    Math.max(
+      0,
+      Math.floor(
+        (Date.now() - timestamp) / 1000
+      )
     );
 
   if (seconds < 60) {
@@ -591,56 +782,67 @@ function relativeTime(timestamp) {
   }
 
   const minutes =
-    Math.floor(seconds / 60);
+    Math.floor(
+      seconds / 60
+    );
 
   if (minutes < 60) {
     return `${minutes}m ago`;
   }
 
   const hours =
-    Math.floor(minutes / 60);
+    Math.floor(
+      minutes / 60
+    );
 
   if (hours < 24) {
     return `${hours}h ago`;
   }
 
   const days =
-    Math.floor(hours / 24);
+    Math.floor(
+      hours / 24
+    );
 
   return `${days}d ago`;
 }
 
 
-// ------------------------------------
-// START
-// ------------------------------------
+/* =========================
+   INITIALIZE
+========================= */
 
-async function initializePortal() {
+async function initialize() {
 
   await loadPrices();
 
-  await loadTokenDecimals();
+  await loadDecimals();
 
   await loadTransactions();
 
   /*
-   * Refresh market prices every 30 seconds.
-   */
+    Market prices:
+    refresh every 30 seconds.
+  */
+
   setInterval(
     loadPrices,
     30000
   );
 
   /*
-   * Refresh blockchain activity every 20 seconds.
-   */
+    Blockchain activity:
+    refresh every 20 seconds.
+  */
+
   setInterval(
     loadTransactions,
     20000
   );
 }
 
-initializePortal();
+
+initialize();
  
    
   
